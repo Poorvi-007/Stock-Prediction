@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock AI Assistant</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f7fb;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 700px;
+            margin: 40px auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.15);
+        }
+
+        h1 {
+            text-align: center;
+            color: #1a73e8;
+        }
+
+        input {
+            width: 70%;
+            padding: 12px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 12px 20px;
+            font-size: 16px;
+            background: #1a73e8;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 6px;
+        }
+
+        button:hover {
+            background: #1558b0;
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            background: #fafafa;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>📈 Stock AI Assistant</h1>
+
+    <form id="stockForm">
+
+        <input
+            type="text"
+            id="symbol"
+            placeholder="Enter Stock Symbol (Example: AAPL or RELIANCE.NS)"
+            required
+        >
+
+        <button type="submit">
+            Analyze
+        </button>
+
+    </form>
+
+    <div class="result" id="result">
+
+        <h3>Prediction will appear here.</h3>
+
+    </div>
+
+</div>
+
+<script>
+
+document.getElementById("stockForm").addEventListener("submit", async function(e){
+
+    e.preventDefault();
+
+    const symbol = document.getElementById("symbol").value;
+
+    const response = await fetch("/predict",{
+
+        method:"POST",
+
+        headers:{
+            "Content-Type":"application/json"
+        },
+
+        body:JSON.stringify({
+            symbol:symbol
+        })
+
+    });
+
+    const data = await response.json();
+
+    document.getElementById("result").innerHTML=`
+
+        <h2>${symbol}</h2>
+
+        <p><strong>Current Price:</strong> ₹ ${data.current_price}</p>
+
+        <p><strong>Recommendation:</strong> ${data.signal}</p>
+
+        <p><strong>Confidence:</strong> ${data.confidence}%</p>
+
+        <p><strong>Estimated Range:</strong> ${data.estimated_range}</p>
+
+    `;
+
+});
+
+</script>
+
+</body>
+</html>

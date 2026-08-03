@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -9,17 +11,23 @@
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
 <style>
-body{
+
+*{
     margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
     font-family:Arial,Helvetica,sans-serif;
     background:#eef2f7;
 }
 
 .container{
     width:90%;
-    max-width:1000px;
+    max-width:1100px;
     margin:40px auto;
-    background:white;
+    background:#fff;
     padding:30px;
     border-radius:15px;
     box-shadow:0 0 15px rgba(0,0,0,.15);
@@ -28,6 +36,7 @@ body{
 h1{
     text-align:center;
     color:#1a237e;
+    margin-bottom:30px;
 }
 
 .search{
@@ -36,22 +45,22 @@ h1{
 }
 
 input{
+    width:260px;
     padding:12px;
-    width:250px;
     font-size:18px;
-    border-radius:8px;
     border:1px solid #ccc;
+    border-radius:8px;
 }
 
 button{
-    padding:12px 22px;
+    padding:12px 20px;
+    margin-left:10px;
     font-size:18px;
-    background:#2962ff;
-    color:white;
     border:none;
     border-radius:8px;
+    background:#2962ff;
+    color:white;
     cursor:pointer;
-    margin-left:10px;
 }
 
 button:hover{
@@ -59,16 +68,16 @@ button:hover{
 }
 
 .card{
-    margin-top:20px;
     background:#f8fbff;
     padding:20px;
     border-radius:10px;
+    margin-top:20px;
 }
 
 .row{
     display:flex;
     justify-content:space-between;
-    padding:8px 0;
+    padding:10px 0;
     border-bottom:1px solid #ddd;
 }
 
@@ -98,8 +107,11 @@ button:hover{
 }
 
 #chart{
+    width:100%;
+    height:650px;
     margin-top:30px;
 }
+
 </style>
 
 </head>
@@ -112,7 +124,10 @@ button:hover{
 
 <div class="search">
 
-<input id="symbol" placeholder="Example: AAPL">
+<input
+type="text"
+id="symbol"
+placeholder="Example: AAPL">
 
 <button onclick="predictStock()">
 Analyze
@@ -124,117 +139,119 @@ Analyze
 
 <div id="chart"></div>
 
-</div>
-
 <script>
 
 async function predictStock(){
 
-    let symbol=document.getElementById("symbol").value.trim();
+let symbol=document.getElementById("symbol").value.trim();
 
-    if(symbol===""){
-        alert("Please enter a stock symbol.");
-        return;
+if(symbol===""){
+    alert("Please enter a stock symbol.");
+    return;
+}
+
+const response=await fetch("/predict",{
+    method:"POST",
+    headers:{
+        "Content-Type":"application/json"
+    },
+    body:JSON.stringify({
+        symbol:symbol
+    })
+});
+
+const data=await response.json();
+
+if(data.error){
+
+    document.getElementById("result").innerHTML=
+    "<h2 style='color:red'>"+data.error+"</h2>";
+
+    return;
+}
+
+let signalClass="hold";
+
+if(data.signal==="BUY") signalClass="buy";
+if(data.signal==="SELL") signalClass="sell";
+
+document.getElementById("result").innerHTML=`
+<div class="card">
+
+<h2 class="${signalClass}">
+${data.signal}
+</h2>
+
+<div class="row">
+<span>Confidence</span>
+<span>${data.confidence}%</span>
+</div>
+
+<div class="row">
+<span>Current Price</span>
+<span>$${data.current_price}</span>
+</div>
+
+<div class="row">
+<span>Tomorrow Estimate</span>
+<span>$${data.tomorrow_price}</span>
+</div>
+
+<div class="row">
+<span>Estimated Range</span>
+<span>${data.estimated_range}</span>
+</div>
+
+<div class="row">
+<span>Risk Level</span>
+<span>${data.risk}</span>
+</div>
+
+<div class="reason">
+
+<b>AI Explanation</b>
+
+<br><br>
+
+${data.reason}
+
+</div>
+
+</div>
+
+`;
+
+const candleResponse = await fetch("/candlestick",{
+    method:"POST",
+    headers:{
+        "Content-Type":"application/json"
+    },
+    body:JSON.stringify({
+        symbol:symbol
+    })
+});
+
+const candleFigure = await candleResponse.json();
+
+if(candleFigure.error){
+    alert(candleFigure.error);
+    return;
+}
+
+Plotly.newPlot(
+    "chart",
+    candleFigure.data,
+    candleFigure.layout,
+    {
+        responsive:true,
+        displayModeBar:true
     }
-
-    const response=await fetch("/predict",{
-        method:"POST",
-        headers:{
-            "Content-Type":"application/json"
-        },
-        body:JSON.stringify({
-            symbol:symbol
-        })
-    });
-
-    const data=await response.json();
-
-    if(data.error){
-        document.getElementById("result").innerHTML="<h2 style='color:red'>"+data.error+"</h2>";
-        return;
-    }
-
-    let signalClass="hold";
-
-    if(data.signal==="BUY") signalClass="buy";
-    if(data.signal==="SELL") signalClass="sell";
-
-    document.getElementById("result").innerHTML=`
-
-    <div class="card">
-
-        <h2 class="${signalClass}">
-            ${data.signal}
-        </h2>
-
-        <div class="row">
-            <span>Confidence</span>
-            <span>${data.confidence}%</span>
-        </div>
-
-        <div class="row">
-            <span>Current Price</span>
-            <span>$${data.current_price}</span>
-        </div>
-
-        <div class="row">
-            <span>Tomorrow Estimate</span>
-            <span>$${data.tomorrow_price}</span>
-        </div>
-
-        <div class="row">
-            <span>Estimated Range</span>
-            <span>${data.estimated_range}</span>
-        </div>
-
-        <div class="row">
-            <span>Risk Level</span>
-            <span>${data.risk}</span>
-        </div>
-
-        <div class="reason">
-            <b>AI Explanation</b>
-            <br><br>
-            ${data.reason}
-        </div>
-
-    </div>
-
-    `;
-
-    let range=data.estimated_range.split(" - ");
-
-    Plotly.newPlot("chart",[{
-
-        x:["Low","Current","Tomorrow","High"],
-
-        y:[
-            parseFloat(range[0]),
-            data.current_price,
-            data.tomorrow_price,
-            parseFloat(range[1])
-        ],
-
-        mode:"lines+markers",
-        type:"scatter"
-
-    }],{
-
-        title:"Prediction Overview",
-
-        xaxis:{
-            title:"Prediction"
-        },
-
-        yaxis:{
-            title:"Price ($)"
-        }
-
-    });
+);
 
 }
 
 </script>
 
 </body>
+
 </html>
